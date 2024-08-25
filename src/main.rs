@@ -5,7 +5,7 @@ use std::{
 };
 
 fn main() {
-    println!("Noze：日本語プログラミング言語\n(c) 2024 梶塚太智. All rights reserved");
+    println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
 
     let mut memory = HashMap::new();
     loop {
