@@ -1,11 +1,18 @@
 use std::{
     collections::HashMap,
+    env::args,
     io::{self, Write},
     process::exit,
 };
 
 fn main() {
     println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
+    let args: Vec<String> = args().collect();
+    let wordend: String = if args.len() > 1 {
+        args[1].clone()
+    } else {
+        "のぜ".to_string()
+    };
 
     let mut memory = HashMap::new();
     loop {
@@ -17,7 +24,7 @@ fn main() {
                 break;
             }
         }
-        noze(code, &mut memory)
+        noze(code, &mut memory, wordend.clone())
     }
 }
 
@@ -55,31 +62,31 @@ fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
     result
 }
 
-fn noze(source: String, memory: &mut HashMap<String, f64>) {
+fn noze(source: String, memory: &mut HashMap<String, f64>, wordend: String) {
     for code in split_multiple(source, ['。', '！'].to_vec()) {
         let code = code.trim();
         if !code.is_empty() {
-            if code.ends_with("するのぜ") {
-                let code = code.replace("するのぜ", "");
+            if code.ends_with(&wordend) {
+                let code = code.replace(&wordend, "");
                 if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
-                    let result = eval(code[1].to_string(), memory);
+                    let result = eval(code[1].to_string(), memory, wordend.clone());
                     memory.insert(code[0].to_string(), result);
                 } else {
-                    eval(code.to_string(), memory);
+                    eval(code.to_string(), memory, wordend.clone());
                 }
             } else {
-                panic!("文の終端には「のぜ」を付ける必要があるのぜ");
+                panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
             }
         }
     }
 }
 
-fn eval(code: String, memory: &mut HashMap<String, f64>) -> f64 {
+fn eval(code: String, memory: &mut HashMap<String, f64>, wordend: String) -> f64 {
     let code: Vec<&str> = code.split("を").collect();
     if code.len() > 1 {
         let (order, args): (String, Vec<f64>) = (
-            code[1].to_string(),
+            code[1].replace("する", "").to_string(),
             code[0]
                 .split("と")
                 .into_iter()
@@ -96,28 +103,28 @@ fn eval(code: String, memory: &mut HashMap<String, f64>) -> f64 {
 
         match order.as_str() {
             "足し算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
+                let mut result: f64 = *args.get(0).expect(&format!("引数が必要{}", wordend));
                 for i in args[1..args.len()].to_vec().iter() {
                     result += i;
                 }
                 result
             }
             "引き算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
+                let mut result: f64 = *args.get(0).expect(&format!("引数が必要{}", wordend));
                 for i in args[1..args.len()].to_vec().iter() {
                     result -= i;
                 }
                 result
             }
             "掛け算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
+                let mut result: f64 = *args.get(0).expect(&format!("引数が必要{}", wordend));
                 for i in args[1..args.len()].to_vec().iter() {
                     result *= i;
                 }
                 result
             }
             "割り算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
+                let mut result: f64 = *args.get(0).expect(&format!("引数が必要{}", wordend));
                 for i in args[1..args.len()].to_vec().iter() {
                     result /= i;
                 }
@@ -136,7 +143,7 @@ fn eval(code: String, memory: &mut HashMap<String, f64>) -> f64 {
             other => panic!("定義されてない命令なのぜ：{}", other),
         }
     } else {
-        match code[0] {
+        match code[0].replace("する", "").as_str() {
             "入力待ち" => input("[入力]: ").parse::<f64>().unwrap_or_default(),
             "終了" => exit(0),
             other => panic!("定義されてない命令なのぜ：{}", other),
