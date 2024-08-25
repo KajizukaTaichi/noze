@@ -61,7 +61,6 @@ fn noze(source: String, memory: &mut HashMap<String, f64>) {
         if !code.is_empty() {
             if code.ends_with("するのぜ") {
                 let code = code.replace("するのぜ", "");
-
                 if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
                     let result = eval(code[1].to_string(), memory);
