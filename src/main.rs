@@ -140,13 +140,13 @@ fn eval(code: String, memory: &mut HashMap<String, f64>, wordend: String) -> f64
                 );
                 0.0
             }
-            other => panic!("定義されてない命令なのぜ：{}", other),
+            other => panic!("定義されてない命令{}：{}", wordend, other),
         }
     } else {
         match code[0].replace("する", "").as_str() {
             "入力待ち" => input("[入力]: ").parse::<f64>().unwrap_or_default(),
             "終了" => exit(0),
-            other => panic!("定義されてない命令なのぜ：{}", other),
+            other => panic!("定義されてない命令{}：{}", wordend, other),
         }
     }
 }
