@@ -31,17 +31,24 @@ fn input(prompt: &str) -> String {
 
 fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
     let mut result = Vec::new();
-    let mut temp = String::new();
+    let mut buffer = String::new();
+    let mut flag = false;
 
     for c in text.chars() {
-        if key.contains(&c) {
-            result.push(temp);
-            temp = "".to_string();
+        if !flag {
+            if key.contains(&c) {
+                flag = true;
+            } else {
+                buffer.push(c);
+            }
         } else {
-            temp.push(c);
+            if !key.contains(&c) {
+                result.push(buffer);
+                flag = false;
+                buffer = "".to_string();
+            }
         }
     }
-
     result
 }
 
