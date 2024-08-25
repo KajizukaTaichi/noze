@@ -29,17 +29,38 @@ fn input(prompt: &str) -> String {
     result.trim().to_string()
 }
 
+fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
+    let mut result = Vec::new();
+    let mut temp = String::new();
+
+    for c in text.chars() {
+        if key.contains(&c) {
+            result.push(temp);
+            temp = "".to_string();
+        } else {
+            temp.push(c);
+        }
+    }
+
+    result
+}
+
 fn noze(source: String, memory: &mut HashMap<String, f64>) {
-    for code in source.split("するのぜ。") {
+    for code in split_multiple(source, ['。', '！'].to_vec()) {
         let code = code.trim();
-        if !code.is_empty() {
-            if code.contains("は") {
-                let code: Vec<&str> = code.split("は").collect();
-                let result = eval(code[1].to_string(), memory);
-                memory.insert(code[0].to_string(), result);
-            } else {
-                eval(code.to_string(), memory);
+        if code.ends_with("するのぜ") {
+            let code = code.replace("するのぜ", "");
+            if !code.is_empty() {
+                if code.contains("は") {
+                    let code: Vec<&str> = code.split("は").collect();
+                    let result = eval(code[1].to_string(), memory);
+                    memory.insert(code[0].to_string(), result);
+                } else {
+                    eval(code.to_string(), memory);
+                }
             }
+        } else {
+            panic!("文の終端には「のぜ」を付ける必要があるのぜ");
         }
     }
 }
@@ -65,28 +86,28 @@ fn eval(code: String, memory: &mut HashMap<String, f64>) -> f64 {
 
         match order.as_str() {
             "足し算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要です");
+                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
                 for i in args[1..args.len()].to_vec().iter() {
                     result += i;
                 }
                 result
             }
             "引き算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要です");
+                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
                 for i in args[1..args.len()].to_vec().iter() {
                     result -= i;
                 }
                 result
             }
             "掛け算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要です");
+                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
                 for i in args[1..args.len()].to_vec().iter() {
                     result *= i;
                 }
                 result
             }
             "割り算" => {
-                let mut result: f64 = *args.get(0).expect("引数が必要です");
+                let mut result: f64 = *args.get(0).expect("引数が必要なのぜ");
                 for i in args[1..args.len()].to_vec().iter() {
                     result /= i;
                 }
@@ -102,13 +123,13 @@ fn eval(code: String, memory: &mut HashMap<String, f64>) -> f64 {
                 );
                 0.0
             }
-            _ => todo!(),
+            other => panic!("定義されてない命令なのぜ：{}", other),
         }
     } else {
         match code[0] {
             "入力待ち" => input("[入力]: ").parse::<f64>().unwrap_or_default(),
             "終了" => exit(0),
-            _ => todo!(),
+            other => panic!("定義されてない命令なのぜ：{}", other),
         }
     }
 }
