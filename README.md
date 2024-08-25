@@ -9,3 +9,5 @@
 ```sh
 rade install noze
 ```
+radeのインストールはこちらのぜ。
+https://github.com/rade-package-manager/rade-package-manager
