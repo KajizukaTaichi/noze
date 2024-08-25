@@ -49,15 +49,19 @@ fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
             }
         }
     }
+    if !buffer.is_empty() {
+        result.push(buffer)
+    }
     result
 }
 
 fn noze(source: String, memory: &mut HashMap<String, f64>) {
     for code in split_multiple(source, ['。', '！'].to_vec()) {
         let code = code.trim();
-        if code.ends_with("するのぜ") {
-            let code = code.replace("するのぜ", "");
-            if !code.is_empty() {
+        if !code.is_empty() {
+            if code.ends_with("するのぜ") {
+                let code = code.replace("するのぜ", "");
+
                 if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
                     let result = eval(code[1].to_string(), memory);
@@ -65,9 +69,9 @@ fn noze(source: String, memory: &mut HashMap<String, f64>) {
                 } else {
                     eval(code.to_string(), memory);
                 }
+            } else {
+                panic!("文の終端には「のぜ」を付ける必要があるのぜ");
             }
-        } else {
-            panic!("文の終端には「のぜ」を付ける必要があるのぜ");
         }
     }
 }
