@@ -107,169 +107,166 @@ fn noze(source: String, wordend: String) {
     let mut pc: usize = 0;
     while pc < lines.len() {
         let code = lines[pc].trim();
-        if !code.is_empty() {
-            if code.ends_with(&wordend) {
-                let code = code.replace(&wordend, "");
-                if code.ends_with("する") {
-                    let code = code.replace("する", "");
-                    let (name, code) = if code.contains("は") {
-                        let code: Vec<&str> = code.split("は").collect();
-                        (
-                            Some(code[0..code.len() - 1].join("は")),
-                            code[code.len() - 1].to_string(),
-                        )
-                    } else {
-                        (None, code.to_string())
-                    };
-                    let code: Vec<&str> = code.split("を").collect();
-                    let result: Type = if code.len() > 1 {
-                        let (order, args): (String, Vec<Type>) = (
-                            code[code.len() - 1].to_string(),
-                            code[0..code.len() - 1]
-                                .join("を")
-                                .split("と")
-                                .into_iter()
-                                .map(|s| {
-                                    let mut s = s.trim().to_string();
-                                    if let Some(value) = memory.get(&s) {
-                                        value.clone()
-                                    } else if let Ok(i) = s.parse::<f64>() {
-                                        Type::Number(i)
-                                    } else if let Ok(b) = s.parse::<bool>() {
-                                        Type::Bool(b)
-                                    } else if s.starts_with("「") && s.starts_with("「") {
-                                        Type::String({
-                                            s.remove(s.find("「").unwrap_or_default());
-                                            s.remove(s.rfind("」").unwrap_or_default());
-                                            s.to_string()
-                                        })
-                                    } else {
-                                        Type::String(s.to_string())
-                                    }
-                                })
-                                .collect(),
-                        );
+        if code.is_empty() {
+            continue;
+        }
+        if code.ends_with(&wordend) {
+            let code = code.replace(&wordend, "");
+            if code.ends_with("する") {
+                let code = code.replace("する", "");
+                let (name, code) = if code.contains("は") {
+                    let code: Vec<&str> = code.split("は").collect();
+                    (
+                        Some(code[0..code.len() - 1].join("は")),
+                        code[code.len() - 1].to_string(),
+                    )
+                } else {
+                    (None, code.to_string())
+                };
+                let code: Vec<&str> = code.split("を").collect();
+                let result: Type = if code.len() > 1 {
+                    let (order, args): (String, Vec<Type>) = (
+                        code[code.len() - 1].to_string(),
+                        code[0..code.len() - 1]
+                            .join("を")
+                            .split("と")
+                            .into_iter()
+                            .map(|s| {
+                                let mut s = s.trim().to_string();
+                                if let Some(value) = memory.get(&s) {
+                                    value.clone()
+                                } else if let Ok(i) = s.parse::<f64>() {
+                                    Type::Number(i)
+                                } else if let Ok(b) = s.parse::<bool>() {
+                                    Type::Bool(b)
+                                } else if s.starts_with("「") && s.starts_with("「") {
+                                    Type::String({
+                                        s.remove(s.find("「").unwrap_or_default());
+                                        s.remove(s.rfind("」").unwrap_or_default());
+                                        s.to_string()
+                                    })
+                                } else {
+                                    Type::String(s.to_string())
+                                }
+                            })
+                            .collect(),
+                    );
 
-                        match order.as_str() {
-                            "足し算" => {
-                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                                let mut result: f64 =
-                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                for i in args[1..args.len()].to_vec().iter() {
-                                    result += i;
-                                }
-                                Type::Number(result)
+                    match order.as_str() {
+                        "足し算" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            let mut result: f64 =
+                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            for i in args[1..args.len()].to_vec().iter() {
+                                result += i;
                             }
-                            "引き算" => {
-                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                                let mut result: f64 =
-                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                for i in args[1..args.len()].to_vec().iter() {
-                                    result -= i;
-                                }
-                                Type::Number(result)
-                            }
-                            "掛け算" => {
-                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                                let mut result: f64 =
-                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                for i in args[1..args.len()].to_vec().iter() {
-                                    result *= i;
-                                }
-                                Type::Number(result)
-                            }
-                            "割り算" => {
-                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                                let mut result: f64 =
-                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                for i in args[1..args.len()].to_vec().iter() {
-                                    result /= i;
-                                }
-                                Type::Number(result)
-                            }
-                            "結合" => {
-                                let args: Vec<String> =
-                                    args.iter().map(|i| i.get_string()).collect();
-
-                                Type::String(args.join(""))
-                            }
-                            "等価演算" => {
-                                let args: Vec<String> =
-                                    args.iter().map(|i| i.get_string()).collect();
-                                Type::Bool(match args.first() {
-                                    Some(first) => args.iter().all(|x| x == first),
-                                    None => true, // ベクタが空の場合はtrueとする
-                                })
-                            }
-                            "論理否定" => Type::Bool(!args[0].get_bool()),
-                            "表示" => {
-                                let output = args
-                                    .iter()
-                                    .map(|i| i.get_string())
-                                    .collect::<Vec<String>>()
-                                    .join(" ");
-                                println!("{output}",);
-                                Type::String(output)
-                            }
-                            "移動" => {
-                                pc = args[0].get_number() as usize - 1;
-                                Type::Number(pc as f64)
-                            }
-                            "条件付きで移動" => {
-                                if args[1].get_bool() {
-                                    pc = args[0].get_number() as usize - 1
-                                }
-                                Type::Number(pc as f64)
-                            }
-                            "呼び出し" => {
-                                call_stack.push(pc);
-                                pc = args[0].get_number() as usize - 1;
-                                Type::Number(pc as f64)
-                            }
-
-                            "入力待ち" => {
-                                Type::String(input(&format!("{}", args[0].get_string())))
-                            }
-                            other => panic!("定義されてない命令{}：{}", wordend, other),
+                            Type::Number(result)
                         }
-                    } else {
-                        match code[0] {
-                            "終了" => exit(0),
-                            "帰還" => {
-                                pc = call_stack
-                                    .pop()
-                                    .expect(&format!("呼び出しスタックが空{}", wordend));
-                                Type::Number(pc as f64)
+                        "引き算" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            let mut result: f64 =
+                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            for i in args[1..args.len()].to_vec().iter() {
+                                result -= i;
                             }
-                            other => panic!("定義されてない命令{}：{}", wordend, other),
+                            Type::Number(result)
                         }
-                    };
-                    if let Some(name) = name {
-                        memory.insert(name, result);
-                    }
-                } else if code.ends_with("である") {
-                    if code.contains("は") {
-                        let code: Vec<&str> = code.split("は").collect();
-                        memory.insert(code[0].to_string(), {
-                            let value = code[1].replace("である", "").trim().to_string();
-                            if let Some(value) = memory.get(&value) {
-                                value.clone()
-                            } else if let Ok(i) = value.parse::<f64>() {
-                                Type::Number(i)
-                            } else {
-                                Type::String(value.to_string())
+                        "掛け算" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            let mut result: f64 =
+                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            for i in args[1..args.len()].to_vec().iter() {
+                                result *= i;
                             }
-                        });
-                    } else {
-                        memory.insert(
-                            code.replace("である", "").trim().to_string(),
-                            Type::Number(pc as f64),
-                        );
+                            Type::Number(result)
+                        }
+                        "割り算" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            let mut result: f64 =
+                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            for i in args[1..args.len()].to_vec().iter() {
+                                result /= i;
+                            }
+                            Type::Number(result)
+                        }
+                        "結合" => {
+                            let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
+
+                            Type::String(args.join(""))
+                        }
+                        "等価演算" => {
+                            let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
+                            Type::Bool(match args.first() {
+                                Some(first) => args.iter().all(|x| x == first),
+                                None => true, // ベクタが空の場合はtrueとする
+                            })
+                        }
+                        "論理否定" => Type::Bool(!args[0].get_bool()),
+                        "表示" => {
+                            let output = args
+                                .iter()
+                                .map(|i| i.get_string())
+                                .collect::<Vec<String>>()
+                                .join(" ");
+                            println!("{output}",);
+                            Type::String(output)
+                        }
+                        "移動" => {
+                            pc = args[0].get_number() as usize - 1;
+                            Type::Number(pc as f64)
+                        }
+                        "条件付きで移動" => {
+                            if args[1].get_bool() {
+                                pc = args[0].get_number() as usize - 1
+                            }
+                            Type::Number(pc as f64)
+                        }
+                        "呼び出し" => {
+                            call_stack.push(pc);
+                            pc = args[0].get_number() as usize - 1;
+                            Type::Number(pc as f64)
+                        }
+
+                        "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
+                        other => panic!("定義されてない命令{}：{}", wordend, other),
                     }
+                } else {
+                    match code[0] {
+                        "終了" => exit(0),
+                        "帰還" => {
+                            pc = call_stack
+                                .pop()
+                                .expect(&format!("呼び出しスタックが空{}", wordend));
+                            Type::Number(pc as f64)
+                        }
+                        other => panic!("定義されてない命令{}：{}", wordend, other),
+                    }
+                };
+                if let Some(name) = name {
+                    memory.insert(name, result);
                 }
-            } else {
-                panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
+            } else if code.ends_with("である") {
+                if code.contains("は") {
+                    let code: Vec<&str> = code.split("は").collect();
+                    memory.insert(code[0].to_string(), {
+                        let value = code[1].replace("である", "").trim().to_string();
+                        if let Some(value) = memory.get(&value) {
+                            value.clone()
+                        } else if let Ok(i) = value.parse::<f64>() {
+                            Type::Number(i)
+                        } else {
+                            Type::String(value.to_string())
+                        }
+                    });
+                } else {
+                    memory.insert(
+                        code.replace("である", "").trim().to_string(),
+                        Type::Number(pc as f64),
+                    );
+                }
             }
+        } else {
+            panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
         }
         // dbg!(pc.clone(), call_stack.clone(), memory.clone());
         pc += 1;
