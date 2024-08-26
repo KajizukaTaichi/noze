@@ -71,6 +71,27 @@ enum Type {
 }
 
 impl Type {
+    fn parse(s: String, memory: &mut HashMap<String, Type>) -> Type {
+        let mut s = s.trim().to_string();
+        if let Some(value) = memory.get(&s) {
+            value.clone()
+        } else if let Ok(i) = s.parse::<f64>() {
+            Type::Number(i)
+        } else if s == "真" {
+            Type::Bool(true)
+        } else if s == "偽" {
+            Type::Bool(false)
+        } else if s.starts_with("「") && s.starts_with("「") {
+            Type::String({
+                s.remove(s.find("「").unwrap_or_default());
+                s.remove(s.rfind("」").unwrap_or_default());
+                s.to_string()
+            })
+        } else {
+            Type::String(s.to_string())
+        }
+    }
+
     fn get_string(&self) -> String {
         match self {
             Type::Number(i) => i.to_string(),
@@ -131,24 +152,7 @@ fn noze(source: String, wordend: String) {
                             .join("を")
                             .split("と")
                             .into_iter()
-                            .map(|s| {
-                                let mut s = s.trim().to_string();
-                                if let Some(value) = memory.get(&s) {
-                                    value.clone()
-                                } else if let Ok(i) = s.parse::<f64>() {
-                                    Type::Number(i)
-                                } else if let Ok(b) = s.parse::<bool>() {
-                                    Type::Bool(b)
-                                } else if s.starts_with("「") && s.starts_with("「") {
-                                    Type::String({
-                                        s.remove(s.find("「").unwrap_or_default());
-                                        s.remove(s.rfind("」").unwrap_or_default());
-                                        s.to_string()
-                                    })
-                                } else {
-                                    Type::String(s.to_string())
-                                }
-                            })
+                            .map(|s| Type::parse(s.to_string(), memory))
                             .collect(),
                     );
 
@@ -207,7 +211,7 @@ fn noze(source: String, wordend: String) {
                             let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
                             Type::Bool(match args.first() {
                                 Some(first) => args.iter().all(|x| x == first),
-                                None => true, // ベクタが空の場合はtrueとする
+                                None => true,
                             })
                         }
                         "論理否定" => Type::Bool(!args[0].get_bool()),
@@ -265,16 +269,9 @@ fn noze(source: String, wordend: String) {
             } else if code.ends_with("である") {
                 if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
-                    memory.insert(code[0].to_string(), {
-                        let value = code[1].replace("である", "").trim().to_string();
-                        if let Some(value) = memory.get(&value) {
-                            value.clone()
-                        } else if let Ok(i) = value.parse::<f64>() {
-                            Type::Number(i)
-                        } else {
-                            Type::String(value.to_string())
-                        }
-                    });
+                    let value =
+                        Type::parse(code[1].replace("である", "").trim().to_string(), memory);
+                    memory.insert(code[0].to_string(), value);
                 } else {
                     memory.insert(
                         code.replace("である", "").trim().to_string(),
