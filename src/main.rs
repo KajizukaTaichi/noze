@@ -146,6 +146,8 @@ fn noze(source: String, wordend: String, debug: bool) {
     let lines = split_multiple(source, ['。', '！'].to_vec());
     let mut call_stack: Vec<usize> = Vec::new();
     let mut pc: usize = 0;
+    let mut output = String::new();
+
     while pc < lines.len() {
         let code = lines[pc].trim();
         if code.is_empty() {
@@ -157,12 +159,14 @@ fn noze(source: String, wordend: String, debug: bool) {
 プログラムカウンタ：{:?}
 命令　　　　　　　：{:?}
 呼び出しスタック　：{:?}
-記憶領域　　　　　：{:?}",
+記憶領域　　　　　：{:?}
+出力：　　　　　　：{output}",
                 pc.clone(),
                 code,
                 call_stack.clone(),
                 memory.clone()
             );
+            input("Enterキーを押して実行継続");
         }
 
         if code.ends_with(&wordend) {
@@ -268,15 +272,15 @@ fn noze(source: String, wordend: String, debug: bool) {
                             Type::Bool(args.iter().any(|&x| x))
                         }
                         "表示" => {
-                            let output = args
+                            let text = args
                                 .iter()
                                 .map(|i| i.get_string())
                                 .collect::<Vec<String>>()
                                 .join(" ");
                             if debug {
-                                println!("出力　　　　　　　：{output}",);
+                                output += &format!("{text} ");
                             } else {
-                                println!("{output}",)
+                                println!("{text}")
                             };
                             Type::None
                         }
