@@ -3,15 +3,30 @@ use std::{
     env::args,
     fs::read_to_string,
     io::{self, Write},
+    path::Path,
     process::exit,
 };
 
 fn main() {
     let args: Vec<String> = args().collect();
+    dbg!(args.clone());
+    let debug = args.contains(&"--debug".to_string()) || args.contains(&"-d".to_string());
+    let args = if debug {
+        let mut args = args;
+        if let Some(x) = args.iter().position(|x| x == "--debug") {
+            args.remove(x);
+        }
+        if let Some(x) = args.iter().position(|x| x == "-d") {
+            args.remove(x);
+        }
+        args
+    } else {
+        args
+    };
     let (source, wordend): (String, String) = if args.len() > 2 {
         (
             read_to_string(args[1].clone())
-                .expect(&format!("ファイルが存在しない{}", args[2].clone())),
+                .expect(&format!("ファイルが開けなかった{}", args[2].clone())),
             args[2].clone(),
         )
     } else if args.len() > 1 {
@@ -26,7 +41,7 @@ fn main() {
         return;
     };
 
-    noze(source, wordend.clone())
+    noze(source, wordend.clone(), debug)
 }
 
 fn input(prompt: &str) -> String {
@@ -68,6 +83,7 @@ enum Type {
     Number(f64),
     String(String),
     Bool(bool),
+    None,
 }
 
 impl Type {
@@ -81,6 +97,8 @@ impl Type {
             Type::Bool(true)
         } else if s == "偽" {
             Type::Bool(false)
+        } else if s == "無し" {
+            Type::None
         } else if s.starts_with("「") && s.starts_with("「") {
             Type::String({
                 s.remove(s.find("「").unwrap_or_default());
@@ -96,7 +114,8 @@ impl Type {
         match self {
             Type::Number(i) => i.to_string(),
             Type::String(s) => s.to_string(),
-            Type::Bool(b) => b.to_string(),
+            Type::Bool(b) => if *b { "真" } else { "偽" }.to_string(),
+            Type::None => "無し".to_string(),
         }
     }
     fn get_number(&self) -> f64 {
@@ -110,18 +129,20 @@ impl Type {
                     0.0
                 }
             }
+            Type::None => 0.0,
         }
     }
     fn get_bool(&self) -> bool {
         match self {
             Type::Number(i) => *i != 0.0,
-            Type::String(s) => s.parse().unwrap_or_default(),
+            Type::String(s) => s == "真",
             Type::Bool(b) => *b,
+            Type::None => false,
         }
     }
 }
 
-fn noze(source: String, wordend: String) {
+fn noze(source: String, wordend: String, debug: bool) {
     let memory: &mut HashMap<String, Type> = &mut HashMap::new();
     let lines = split_multiple(source, ['。', '！'].to_vec());
     let mut call_stack: Vec<usize> = Vec::new();
@@ -131,6 +152,20 @@ fn noze(source: String, wordend: String) {
         if code.is_empty() {
             continue;
         }
+        if debug {
+            eprintln!(
+                "
+プログラムカウンタ：{:?}
+命令：　　　　　　：{:?}
+呼び出しスタック　：{:?}
+記憶領域　　　　　：{:?}",
+                pc.clone(),
+                code,
+                call_stack.clone(),
+                memory.clone()
+            );
+        }
+
         if code.ends_with(&wordend) {
             let code = code.replace(&wordend, "");
             if code.ends_with("する") {
@@ -204,8 +239,18 @@ fn noze(source: String, wordend: String) {
                         }
                         "結合" => {
                             let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
-
                             Type::String(args.join(""))
+                        }
+                        "検索" => {
+                            let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
+                            Type::Bool(args[0].contains(&args[1]))
+                        }
+                        "ファイル読み込み" => Type::String(
+                            read_to_string(Path::new(&args[0].get_string())).unwrap_or_default(),
+                        ),
+                        "置換" => {
+                            let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
+                            Type::String(args[0].replace(&args[1], &args[2]))
                         }
                         "等価演算" => {
                             let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
@@ -229,25 +274,33 @@ fn noze(source: String, wordend: String) {
                                 .map(|i| i.get_string())
                                 .collect::<Vec<String>>()
                                 .join(" ");
-                            println!("{output}",);
-                            Type::String(output)
+                            if debug {
+                                println!("出力　　　　　　：{output}",);
+                            } else {
+                                println!("{output}",)
+                            };
+                            Type::None
                         }
                         "移動" => {
                             pc = args[0].get_number() as usize - 1;
-                            Type::Number(pc as f64)
+                            Type::None
                         }
                         "条件付きで移動" => {
                             if args[1].get_bool() {
                                 pc = args[0].get_number() as usize - 1
                             }
-                            Type::Number(pc as f64)
+                            Type::None
                         }
                         "呼び出し" => {
                             call_stack.push(pc);
                             pc = args[0].get_number() as usize - 1;
-                            Type::Number(pc as f64)
+                            Type::None
                         }
-
+                        "評価" => Type::parse(args[0].get_string(), memory),
+                        "削除" => {
+                            memory.remove(&args[0].get_string());
+                            Type::None
+                        }
                         "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
                         other => panic!("定義されてない命令{}：{}", wordend, other),
                     }
@@ -258,7 +311,7 @@ fn noze(source: String, wordend: String) {
                             pc = call_stack
                                 .pop()
                                 .expect(&format!("呼び出しスタックが空{}", wordend));
-                            Type::Number(pc as f64)
+                            Type::None
                         }
                         other => panic!("定義されてない命令{}：{}", wordend, other),
                     }
@@ -282,7 +335,7 @@ fn noze(source: String, wordend: String) {
         } else {
             panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
         }
-        // dbg!(pc.clone(), call_stack.clone(), memory.clone());
+
         pc += 1;
     }
 }
