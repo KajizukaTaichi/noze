@@ -211,12 +211,12 @@ fn noze(source: String, wordend: String) {
                                 Type::String(output)
                             }
                             "移動" => {
-                                pc = args[0].get_number() as usize;
+                                pc = args[0].get_number() as usize - 1;
                                 Type::Number(pc as f64)
                             }
                             "条件付きで移動" => {
                                 if args[1].get_bool() {
-                                    pc = args[0].get_number() as usize
+                                    pc = args[0].get_number() as usize - 1
                                 }
                                 Type::Number(pc as f64)
                             }
