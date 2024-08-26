@@ -113,25 +113,35 @@ fn noze(source: String, wordend: String) {
                     let code = code.replace("する", "");
                     let (name, code) = if code.contains("は") {
                         let code: Vec<&str> = code.split("は").collect();
-                        (Some(code[0].to_string()), code[1].to_string())
+                        (
+                            Some(code[0..code.len() - 1].join("は")),
+                            code[code.len() - 1].to_string(),
+                        )
                     } else {
                         (None, code.to_string())
                     };
                     let code: Vec<&str> = code.split("を").collect();
                     let result: Type = if code.len() > 1 {
                         let (order, args): (String, Vec<Type>) = (
-                            code[1].to_string(),
-                            code[0]
+                            code[code.len() - 1].to_string(),
+                            code[0..code.len() - 1]
+                                .join("を")
                                 .split("と")
                                 .into_iter()
                                 .map(|s| {
-                                    let s = s.trim();
-                                    if let Some(value) = memory.get(s) {
+                                    let mut s = s.trim().to_string();
+                                    if let Some(value) = memory.get(&s) {
                                         value.clone()
                                     } else if let Ok(i) = s.parse::<f64>() {
                                         Type::Number(i)
                                     } else if let Ok(b) = s.parse::<bool>() {
                                         Type::Bool(b)
+                                    } else if s.starts_with("「") && s.starts_with("「") {
+                                        Type::String({
+                                            s.remove(s.find("「").unwrap_or_default());
+                                            s.remove(s.rfind("」").unwrap_or_default());
+                                            s.to_string()
+                                        })
                                     } else {
                                         Type::String(s.to_string())
                                     }
@@ -175,6 +185,12 @@ fn noze(source: String, wordend: String) {
                                     result /= i;
                                 }
                                 Type::Number(result)
+                            }
+                            "結合" => {
+                                let args: Vec<String> =
+                                    args.iter().map(|i| i.get_string()).collect();
+
+                                Type::String(args.join(""))
                             }
                             "等価演算" => {
                                 let args: Vec<String> =
