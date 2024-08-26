@@ -271,6 +271,7 @@ fn noze(source: String, wordend: String) {
                 panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
             }
         }
+        // dbg!(pc.clone(), call_stack.clone(), memory.clone());
         pc += 1;
     }
 }
