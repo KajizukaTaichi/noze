@@ -30,7 +30,7 @@ fn main() {
         )
     } else if args.len() > 1 {
         (
-            read_to_string(args[1].clone()).expect("ファイルが存在しないのぜ"),
+            read_to_string(args[1].clone()).expect("ファイルが開けなかったのぜ"),
             "のぜ".to_string(),
         )
     } else {
