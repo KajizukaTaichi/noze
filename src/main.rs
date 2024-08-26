@@ -160,13 +160,14 @@ fn noze(source: String, wordend: String, debug: bool) {
 命令　　　　　　　：{:?}
 呼び出しスタック　：{:?}
 記憶領域　　　　　：{:?}
-出力：　　　　　　：{output}",
+出力：　　　　　　：{:?}",
                 pc.clone(),
                 code,
                 call_stack.clone(),
-                memory.clone()
+                memory.clone(),
+                output
             );
-            input("Enterキーを押して実行継続");
+            input("Enterキーを押してデバック実行継続");
         }
 
         if code.ends_with(&wordend) {
