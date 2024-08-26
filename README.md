@@ -7,7 +7,8 @@
 
 |サンプル画像|
 |:-|
-|![image](https://github.com/user-attachments/assets/8c1ad462-cbaf-4abf-a2b7-33cf68644988)|
+|<img width="639" alt="image" src="https://github.com/user-attachments/assets/a1c205ce-c1b0-4951-a106-e44ba3f21c75">|
+
 
 ## インストール
 以下のコマンドでインストール出来るのぜ。
