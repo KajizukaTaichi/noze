@@ -189,6 +189,15 @@ fn noze(source: String, wordend: String) {
                             }
                             Type::Number(result)
                         }
+                        "余剰" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            let mut result: f64 =
+                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            for i in args[1..args.len()].to_vec().iter() {
+                                result %= i;
+                            }
+                            Type::Number(result)
+                        }
                         "結合" => {
                             let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
 
@@ -202,6 +211,14 @@ fn noze(source: String, wordend: String) {
                             })
                         }
                         "論理否定" => Type::Bool(!args[0].get_bool()),
+                        "論理積" => {
+                            let args: Vec<bool> = args.iter().map(|i| i.get_bool()).collect();
+                            Type::Bool(args.iter().all(|&x| x))
+                        }
+                        "論理和" => {
+                            let args: Vec<bool> = args.iter().map(|i| i.get_bool()).collect();
+                            Type::Bool(args.iter().any(|&x| x))
+                        }
                         "表示" => {
                             let output = args
                                 .iter()
