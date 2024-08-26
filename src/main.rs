@@ -9,7 +9,6 @@ use std::{
 
 fn main() {
     let args: Vec<String> = args().collect();
-    dbg!(args.clone());
     let debug = args.contains(&"--debug".to_string()) || args.contains(&"-d".to_string());
     let args = if debug {
         let mut args = args;
