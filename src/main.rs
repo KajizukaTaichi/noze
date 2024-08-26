@@ -103,6 +103,7 @@ impl Type {
 fn noze(source: String, wordend: String) {
     let memory: &mut HashMap<String, Type> = &mut HashMap::new();
     let lines = split_multiple(source, ['。', '！'].to_vec());
+    let mut call_stack: Vec<usize> = Vec::new();
     let mut pc: usize = 0;
     while pc < lines.len() {
         let code = lines[pc].trim();
@@ -220,6 +221,12 @@ fn noze(source: String, wordend: String) {
                                 }
                                 Type::Number(pc as f64)
                             }
+                            "呼び出し" => {
+                                call_stack.push(pc);
+                                pc = args[0].get_number() as usize - 1;
+                                Type::Number(pc as f64)
+                            }
+
                             "入力待ち" => {
                                 Type::String(input(&format!("{}", args[0].get_string())))
                             }
@@ -228,6 +235,12 @@ fn noze(source: String, wordend: String) {
                     } else {
                         match code[0] {
                             "終了" => exit(0),
+                            "帰還" => {
+                                pc = call_stack
+                                    .pop()
+                                    .expect(&format!("呼び出しスタックが空{}", wordend));
+                                Type::Number(pc as f64)
+                            }
                             other => panic!("定義されてない命令{}：{}", wordend, other),
                         }
                     };
