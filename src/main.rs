@@ -155,7 +155,7 @@ fn noze(source: String, wordend: String, debug: bool) {
             eprintln!(
                 "
 プログラムカウンタ：{:?}
-命令：　　　　　　：{:?}
+命令　　　　　　　：{:?}
 呼び出しスタック　：{:?}
 記憶領域　　　　　：{:?}",
                 pc.clone(),
@@ -274,7 +274,7 @@ fn noze(source: String, wordend: String, debug: bool) {
                                 .collect::<Vec<String>>()
                                 .join(" ");
                             if debug {
-                                println!("出力　　　　　　：{output}",);
+                                println!("出力　　　　　　　：{output}",);
                             } else {
                                 println!("{output}",)
                             };
