@@ -1,31 +1,32 @@
 use std::{
     collections::HashMap,
     env::args,
+    fs::read_to_string,
     io::{self, Write},
     process::exit,
 };
 
 fn main() {
-    println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
     let args: Vec<String> = args().collect();
-    let wordend: String = if args.len() > 1 {
-        args[1].clone()
+    let (source, wordend): (String, String) = if args.len() > 2 {
+        (
+            read_to_string(args[1].clone())
+                .expect(&format!("ファイルが存在しない{}", args[2].clone())),
+            args[2].clone(),
+        )
+    } else if args.len() > 1 {
+        (
+            read_to_string(args[1].clone()).expect("ファイルが存在しないのぜ"),
+            "のぜ".to_string(),
+        )
     } else {
-        "のぜ".to_string()
+        println!(
+            "Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved"
+        );
+        return;
     };
 
-    let mut memory = HashMap::new();
-    loop {
-        let mut code = String::new();
-        loop {
-            let enter = input("> ").trim().to_string();
-            code += &format!("{enter}\n");
-            if enter.is_empty() {
-                break;
-            }
-        }
-        noze(code, &mut memory, wordend.clone())
-    }
+    noze(source, wordend.clone())
 }
 
 fn input(prompt: &str) -> String {
@@ -62,10 +63,11 @@ fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
     result
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 enum Type {
     Number(f64),
     String(String),
+    Bool(bool),
 }
 
 impl Type {
@@ -73,144 +75,173 @@ impl Type {
         match self {
             Type::Number(i) => i.to_string(),
             Type::String(s) => s.to_string(),
+            Type::Bool(b) => b.to_string(),
         }
     }
     fn get_number(&self) -> f64 {
         match self {
             Type::Number(i) => *i,
             Type::String(s) => s.parse().unwrap_or_default(),
+            Type::Bool(b) => {
+                if *b {
+                    1.0
+                } else {
+                    0.0
+                }
+            }
+        }
+    }
+    fn get_bool(&self) -> bool {
+        match self {
+            Type::Number(i) => *i != 0.0,
+            Type::String(s) => s.parse().unwrap_or_default(),
+            Type::Bool(b) => *b,
         }
     }
 }
 
-fn noze(source: String, memory: &mut HashMap<String, Type>, wordend: String) {
+fn noze(source: String, wordend: String) {
+    let memory: &mut HashMap<String, Type> = &mut HashMap::new();
     let lines = split_multiple(source, ['。', '！'].to_vec());
-    let mut pc:  usize = 0;
-    while pc > lines.len() {
+    let mut pc: usize = 0;
+    while pc < lines.len() {
         let code = lines[pc].trim();
         if !code.is_empty() {
             if code.ends_with(&wordend) {
                 let code = code.replace(&wordend, "");
                 if code.ends_with("する") {
                     let code = code.replace("する", "");
-                    let mut eval = |code: String| -> Type {
-                        let code: Vec<&str> = code.split("を").collect();
-                        if code.len() > 1 {
-                            let (order, args): (String, Vec<Type>) = (
-                                code[1].to_string(),
-                                code[0]
-                                    .split("と")
-                                    .into_iter()
-                                    .map(|s| {
-                                        let s = s.trim();
-                                        if let Some(value) = memory.get(s) {
-                                            value.clone()
-                                        } else if let Ok(i) = s.parse::<f64>() {
-                                            Type::Number(i)
-                                        } else {
-                                            Type::String(s.to_string())
-                                        }
-                                    })
-                                    .collect(),
-                            );
+                    let (name, code) = if code.contains("は") {
+                        let code: Vec<&str> = code.split("は").collect();
+                        (Some(code[0].to_string()), code[1].to_string())
+                    } else {
+                        (None, code.to_string())
+                    };
+                    let code: Vec<&str> = code.split("を").collect();
+                    let result: Type = if code.len() > 1 {
+                        let (order, args): (String, Vec<Type>) = (
+                            code[1].to_string(),
+                            code[0]
+                                .split("と")
+                                .into_iter()
+                                .map(|s| {
+                                    let s = s.trim();
+                                    if let Some(value) = memory.get(s) {
+                                        value.clone()
+                                    } else if let Ok(i) = s.parse::<f64>() {
+                                        Type::Number(i)
+                                    } else if let Ok(b) = s.parse::<bool>() {
+                                        Type::Bool(b)
+                                    } else {
+                                        Type::String(s.to_string())
+                                    }
+                                })
+                                .collect(),
+                        );
 
-                            match order.as_str() {
-                                "足し算" => {
-                                    let args: Vec<f64> =
-                                        args.iter().map(|i| i.get_number()).collect();
-                                    let mut result: f64 =
-                                        *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                    for i in args[1..args.len()].to_vec().iter() {
-                                        result += i;
-                                    }
-                                    Type::Number(result)
+                        match order.as_str() {
+                            "足し算" => {
+                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                                let mut result: f64 =
+                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
+                                for i in args[1..args.len()].to_vec().iter() {
+                                    result += i;
                                 }
-                                "引き算" => {
-                                    let args: Vec<f64> =
-                                        args.iter().map(|i| i.get_number()).collect();
-                                    let mut result: f64 =
-                                        *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                    for i in args[1..args.len()].to_vec().iter() {
-                                        result -= i;
-                                    }
-                                    Type::Number(result)
-                                }
-                                "掛け算" => {
-                                    let args: Vec<f64> =
-                                        args.iter().map(|i| i.get_number()).collect();
-                                    let mut result: f64 =
-                                        *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                    for i in args[1..args.len()].to_vec().iter() {
-                                        result *= i;
-                                    }
-                                    Type::Number(result)
-                                }
-                                "割り算" => {
-                                    let args: Vec<f64> =
-                                        args.iter().map(|i| i.get_number()).collect();
-                                    let mut result: f64 =
-                                        *args.get(0).expect(&format!("引数が必要{}", wordend));
-                                    for i in args[1..args.len()].to_vec().iter() {
-                                        result /= i;
-                                    }
-                                    Type::Number(result)
-                                }
-                                "表示" => {
-                                    let output = args
-                                        .iter()
-                                        .map(|i| i.get_string())
-                                        .collect::<Vec<String>>()
-                                        .join(" ");
-                                    println!("[出力]: {output}",);
-                                    Type::String(output)
-                                }
-                                "移動" => {
-                                    pc = memory.get(&args[0].get_string()).expect(&format!(
-                                        "指定したラベルが定義されてない{}",
-                                        wordend
-                                    )).get_number() as usize - 1;
-                                    Type::Number(pc as f64)
-                                }
-                                "入力待ち" => {
-                                    Type::String(input(&format!("{}", args[0].get_string())))
-                                }
-                                other => panic!("定義されてない命令{}：{}", wordend, other),
+                                Type::Number(result)
                             }
-                        } else {
-                            match code[0] {
-                                "終了" => exit(0),
-                                other => panic!("定義されてない命令{}：{}", wordend, other),
+                            "引き算" => {
+                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                                let mut result: f64 =
+                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
+                                for i in args[1..args.len()].to_vec().iter() {
+                                    result -= i;
+                                }
+                                Type::Number(result)
                             }
+                            "掛け算" => {
+                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                                let mut result: f64 =
+                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
+                                for i in args[1..args.len()].to_vec().iter() {
+                                    result *= i;
+                                }
+                                Type::Number(result)
+                            }
+                            "割り算" => {
+                                let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                                let mut result: f64 =
+                                    *args.get(0).expect(&format!("引数が必要{}", wordend));
+                                for i in args[1..args.len()].to_vec().iter() {
+                                    result /= i;
+                                }
+                                Type::Number(result)
+                            }
+                            "等価演算" => {
+                                let args: Vec<String> =
+                                    args.iter().map(|i| i.get_string()).collect();
+                                Type::Bool(match args.first() {
+                                    Some(first) => args.iter().all(|x| x == first),
+                                    None => true, // ベクタが空の場合はtrueとする
+                                })
+                            }
+                            "論理否定" => Type::Bool(!args[0].get_bool()),
+                            "表示" => {
+                                let output = args
+                                    .iter()
+                                    .map(|i| i.get_string())
+                                    .collect::<Vec<String>>()
+                                    .join(" ");
+                                println!("{output}",);
+                                Type::String(output)
+                            }
+                            "移動" => {
+                                pc = args[0].get_number() as usize;
+                                Type::Number(pc as f64)
+                            }
+                            "条件付きで移動" => {
+                                if args[1].get_bool() {
+                                    pc = args[0].get_number() as usize
+                                }
+                                Type::Number(pc as f64)
+                            }
+                            "入力待ち" => {
+                                Type::String(input(&format!("{}", args[0].get_string())))
+                            }
+                            other => panic!("定義されてない命令{}：{}", wordend, other),
+                        }
+                    } else {
+                        match code[0] {
+                            "終了" => exit(0),
+                            other => panic!("定義されてない命令{}：{}", wordend, other),
                         }
                     };
-                    if code.contains("は") {
-                        let code: Vec<&str> = code.split("は").collect();
-                        let result = eval(code[1].to_string());
-                        memory.insert(code[0].to_string(), result);
-                    } else {
-                        eval(code.to_string());
+                    if let Some(name) = name {
+                        memory.insert(name, result);
                     }
                 } else if code.ends_with("である") {
                     if code.contains("は") {
                         let code: Vec<&str> = code.split("は").collect();
-                        memory.insert(
-                            code[0].to_string(),
-                            if let Some(value) = memory.get(code[1]) {
+                        memory.insert(code[0].to_string(), {
+                            let value = code[1].replace("である", "").trim().to_string();
+                            if let Some(value) = memory.get(&value) {
                                 value.clone()
-                            } else if let Ok(i) = code[1].parse::<f64>() {
+                            } else if let Ok(i) = value.parse::<f64>() {
                                 Type::Number(i)
                             } else {
-                                Type::String(code[1].to_string())
-                            },
-                        );
+                                Type::String(value.to_string())
+                            }
+                        });
                     } else {
-                        memory.insert(code.replace("である", ""), Type::Number(pc as f64));
+                        memory.insert(
+                            code.replace("である", "").trim().to_string(),
+                            Type::Number(pc as f64),
+                        );
                     }
                 }
             } else {
                 panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
             }
         }
-        pc += 0;
+        pc += 1;
     }
 }
