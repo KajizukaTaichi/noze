@@ -156,15 +156,23 @@ fn noze(source: String, wordend: String, debug: bool) {
         if debug {
             eprintln!(
                 "
-プログラムカウンタ：{:?}
-命令　　　　　　　：{:?}
-呼び出しスタック　：{:?}
-記憶領域　　　　　：{:?}
-出力：　　　　　　：{:?}",
-                pc.clone(),
+プログラムカウンタ：{}
+命令　　　　　　　：{}
+呼び出しスタック　：[ {} ]
+記憶領域　　　　　：[ {} ]
+出力：　　　　　　：{}",
+                pc,
                 code,
-                call_stack.clone(),
-                memory.clone(),
+                call_stack
+                    .iter()
+                    .map(|i| i.to_string())
+                    .collect::<Vec<String>>()
+                    .join(", "),
+                memory
+                    .iter()
+                    .map(|(k, v)| format!("{k}: {}", v.get_string()))
+                    .collect::<Vec<String>>()
+                    .join(", "),
                 output
             );
             input("Enterキーを押してデバック実行継続");
