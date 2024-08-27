@@ -180,6 +180,30 @@ impl Type {
 fn noze(source: String, wordend: String, debug: bool) {
     let memory: &mut HashMap<String, Type> = &mut HashMap::new();
     let lines = split_multiple(source, ['。', '！'].to_vec());
+    let mut pc: usize = 0;
+
+    // Preprocessing
+    while pc < lines.len() {
+        let code = lines[pc].trim();
+        if code.is_empty() {
+            continue;
+        }
+        if code.ends_with(&wordend) {
+            let code = code.replace(&wordend, "");
+            if code.ends_with("である") {
+                if !code.contains("は") {
+                    memory.insert(
+                        code.replace("である", "").trim().to_string(),
+                        Type::Number(pc as f64),
+                    );
+                }
+            }
+        } else {
+            panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
+        }
+        pc += 1;
+    }
+
     let mut call_stack: Vec<usize> = Vec::new();
     let mut pc: usize = 0;
     let mut output = String::new();
