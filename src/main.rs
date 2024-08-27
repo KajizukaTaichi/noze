@@ -1,3 +1,4 @@
+use regex::Regex;
 use std::{
     collections::HashMap,
     env::args,
@@ -51,6 +52,39 @@ fn input(prompt: &str) -> String {
     result.trim().to_string()
 }
 
+fn convert_to_usize(text: &str) -> Option<usize> {
+    let re = Regex::new(r"[０１２３４５６７８９]+").unwrap();
+    if !re.is_match(text) {
+        return None;
+    }
+
+    let map: HashMap<char, usize> = vec![
+        ('０', 0),
+        ('１', 1),
+        ('２', 2),
+        ('３', 3),
+        ('４', 4),
+        ('５', 5),
+        ('６', 6),
+        ('７', 7),
+        ('８', 8),
+        ('９', 9),
+    ]
+    .into_iter()
+    .collect();
+
+    let mut result = String::new();
+    for c in text.chars() {
+        if let Some(&value) = map.get(&c) {
+            result += &value.to_string()
+        } else {
+            return None;
+        }
+    }
+
+    Some(result.parse().unwrap_or_default())
+}
+
 fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
     let mut result = Vec::new();
     let mut buffer = String::new();
@@ -92,6 +126,8 @@ impl Type {
             value.clone()
         } else if let Ok(i) = s.parse::<f64>() {
             Type::Number(i)
+        } else if let Some(i) = convert_to_usize(&s) {
+            Type::Number(i as f64)
         } else if s == "真" {
             Type::Bool(true)
         } else if s == "偽" {
