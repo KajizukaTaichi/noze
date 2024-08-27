@@ -402,11 +402,6 @@ fn noze(source: String, wordend: String, debug: bool) {
                     let value =
                         Type::parse(code[1].replace("である", "").trim().to_string(), memory);
                     memory.insert(code[0].to_string(), value);
-                } else {
-                    memory.insert(
-                        code.replace("である", "").trim().to_string(),
-                        Type::Number(pc as f64),
-                    );
                 }
             }
         } else {
