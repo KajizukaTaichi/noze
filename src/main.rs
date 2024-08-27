@@ -264,12 +264,17 @@ fn noze(source: String, wordend: String, debug: bool) {
                             let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
                             Type::String(args[0].replace(&args[1], &args[2]))
                         }
-                        "等価演算" => {
+                        "等しいか比較" => {
                             let args: Vec<String> = args.iter().map(|i| i.get_string()).collect();
-                            Type::Bool(match args.first() {
-                                Some(first) => args.iter().all(|x| x == first),
-                                None => true,
-                            })
+                            Type::Bool(args.windows(2).all(|window| window[0] == window[1]))
+                        }
+                        "大きいか比較" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            Type::Bool(args.windows(2).all(|window| window[0] > window[1]))
+                        }
+                        "小さいか比較" => {
+                            let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
+                            Type::Bool(args.windows(2).all(|window| window[0] < window[1]))
                         }
                         "論理否定" => Type::Bool(!args[0].get_bool()),
                         "論理積" => {
@@ -347,7 +352,6 @@ fn noze(source: String, wordend: String, debug: bool) {
         } else {
             panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
         }
-
         pc += 1;
     }
 }
