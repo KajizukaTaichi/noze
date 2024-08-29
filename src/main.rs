@@ -1,8 +1,8 @@
 use regex::Regex;
 use std::{
     collections::HashMap,
-    env::args,
-    fs::read_to_string,
+    env::{self, args},
+    fs::{self, read_to_string},
     io::{self, Write},
     path::Path,
     process::exit,
@@ -25,23 +25,46 @@ fn main() {
     };
     let (source, wordend): (String, String) = if args.len() > 2 {
         (
-            read_to_string(args[1].clone())
-                .expect(&format!("ファイルが開けなかった{}", args[2].clone())),
-            args[2].clone(),
+            if let Ok(file) = read_to_string(args[1].clone()) {
+                file
+            } else {
+                repl(args[2].to_string(), debug);
+                return;
+            },
+            args[2].to_string(),
         )
     } else if args.len() > 1 {
         (
-            read_to_string(args[1].clone()).expect("ファイルが開けなかったのぜ"),
+            if let Ok(file) = read_to_string(args[1].clone()) {
+                file
+            } else {
+                repl("のぜ".to_string(), debug);
+                return;
+            },
             "のぜ".to_string(),
         )
     } else {
-        println!(
-            "Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved"
-        );
+        repl("のぜ".to_string(), debug);
         return;
     };
 
     noze(source, wordend.clone(), debug)
+}
+
+fn repl(wordend: String, debug: bool) {
+    println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
+    loop {
+        let mut code = String::new();
+        loop {
+            let enter = input("> ").trim().to_string();
+            code += &enter;
+            if enter.is_empty() {
+                break;
+            }
+        }
+
+        noze(code, wordend.clone(), debug);
+    }
 }
 
 fn input(prompt: &str) -> String {
@@ -53,7 +76,7 @@ fn input(prompt: &str) -> String {
 }
 
 fn convert_to_usize(text: &str) -> Option<usize> {
-    let re = Regex::new(r"[０１２３４５６７８９]+").unwrap();
+    let re = Regex::new(r"^[０１２３４５６７８９]+$").unwrap();
     if !re.is_match(text) {
         return None;
     }
@@ -116,6 +139,7 @@ enum Type {
     Number(f64),
     String(String),
     Bool(bool),
+    Array(Vec<Type>),
     None,
 }
 
@@ -140,6 +164,15 @@ impl Type {
                 s.remove(s.rfind("」").unwrap_or_default());
                 s.to_string()
             })
+        } else if s.starts_with("（") && s.starts_with("）") {
+            Type::Array({
+                s.remove(s.find("（").unwrap_or_default());
+                s.remove(s.rfind("）").unwrap_or_default());
+                split_multiple(s, vec!['、', ','])
+                    .into_iter()
+                    .map(|i| Type::parse(i.to_string(), memory))
+                    .collect()
+            })
         } else {
             Type::String(s.to_string())
         }
@@ -150,6 +183,13 @@ impl Type {
             Type::Number(i) => i.to_string(),
             Type::String(s) => s.to_string(),
             Type::Bool(b) => if *b { "真" } else { "偽" }.to_string(),
+            Type::Array(a) => format!(
+                "（ {} ）",
+                a.iter()
+                    .map(|i| i.get_string())
+                    .collect::<Vec<String>>()
+                    .join("、")
+            ),
             Type::None => "無し".to_string(),
         }
     }
@@ -164,6 +204,7 @@ impl Type {
                     0.0
                 }
             }
+            Type::Array(a) => a.get(0).unwrap_or(&Type::None).get_number(),
             Type::None => 0.0,
         }
     }
@@ -172,14 +213,29 @@ impl Type {
             Type::Number(i) => *i != 0.0,
             Type::String(s) => s == "真",
             Type::Bool(b) => *b,
+            Type::Array(a) => !a.is_empty(),
             Type::None => false,
+        }
+    }
+
+    fn get_array(&self) -> Vec<Type> {
+        match self {
+            Type::Number(i) => vec![Type::Number(*i)],
+            Type::String(s) => s
+                .chars()
+                .into_iter()
+                .map(|i| Type::String(i.to_string()))
+                .collect(),
+            Type::Bool(b) => vec![Type::Bool(*b)],
+            Type::Array(a) => a.clone(),
+            Type::None => vec![],
         }
     }
 }
 
 fn noze(source: String, wordend: String, debug: bool) {
     let memory: &mut HashMap<String, Type> = &mut HashMap::new();
-    let lines = split_multiple(source, ['。', '！'].to_vec());
+    let lines = split_multiple(source, ['。', '.'].to_vec());
     let mut pc: usize = 0;
 
     // Preprocessing
@@ -345,6 +401,15 @@ fn noze(source: String, wordend: String, debug: bool) {
                             let args: Vec<bool> = args.iter().map(|i| i.get_bool()).collect();
                             Type::Bool(args.iter().any(|&x| x))
                         }
+                        "配列に" => Type::Array(args),
+                        "配列の要素の取得" => {
+                            args[0].get_array()[args[1].get_number() as usize].clone()
+                        }
+                        "配列の要素の削除" => {
+                            let mut array = args[0].get_array();
+                            array.remove(args[1].get_number() as usize);
+                            Type::Array(array)
+                        }
                         "表示" => {
                             let text = args
                                 .iter()
@@ -378,6 +443,10 @@ fn noze(source: String, wordend: String, debug: bool) {
                             memory.remove(&args[0].get_string());
                             Type::None
                         }
+                        "現在ディレクトリに" => {
+                            env::set_current_dir(Path::new(&args[0].get_string())).unwrap();
+                            Type::None
+                        }
                         "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
                         other => panic!("定義されてない命令{}：{}", wordend, other),
                     }
@@ -389,6 +458,20 @@ fn noze(source: String, wordend: String, debug: bool) {
                                 .pop()
                                 .expect(&format!("呼び出しスタックが空{}", wordend));
                             Type::None
+                        }
+                        "アイテム一覧の取得" => Type::Array(
+                            fs::read_dir(".")
+                                .unwrap()
+                                .filter_map(|entry| {
+                                    entry
+                                        .ok()
+                                        .and_then(|e| e.file_name().into_string().ok())
+                                        .map(Type::String)
+                                })
+                                .collect(),
+                        ),
+                        "現在ディレクトリの取得" => {
+                            Type::String(env::current_dir().unwrap().to_str().unwrap().to_string())
                         }
                         other => panic!("定義されてない命令{}：{}", wordend, other),
                     }
