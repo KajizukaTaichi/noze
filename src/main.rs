@@ -41,7 +41,7 @@ fn main() {
 
 /// 対話環境なのぜ
 fn repl(debug: bool) {
-    println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
+    println!("Noze：アセンブリ風の低レイヤ技術教育向け日本語プログラミング言語なのぜ！\n(c) 2024 梶塚太智. All rights reserved");
     loop {
         let mut code = String::new();
         loop {
