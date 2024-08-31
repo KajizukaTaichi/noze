@@ -46,10 +46,10 @@ fn repl(debug: bool) {
         let mut code = String::new();
         loop {
             let enter = input("> ").trim().to_string();
-            code += &enter;
             if enter.is_empty() {
                 break;
             }
+            code += &enter;
         }
 
         noze(code, debug);
@@ -104,7 +104,7 @@ fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
             if !key.contains(&c) {
                 result.push(buffer);
                 flag = false;
-                buffer = "".to_string();
+                buffer = c.to_string();
             }
         }
     }
