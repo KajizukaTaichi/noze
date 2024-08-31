@@ -10,7 +10,9 @@ use std::{
 
 fn main() {
     let args: Vec<String> = args().collect();
+    // デバックするオプションが含まれるのぜ？
     let debug = args.contains(&"--debug".to_string()) || args.contains(&"-d".to_string());
+    // 不要になったオプションを削除するのぜ
     let args = if debug {
         let mut args = args;
         if let Some(x) = args.iter().position(|x| x == "--debug") {
@@ -24,7 +26,9 @@ fn main() {
         args
     };
 
+    // コマンドライン引数は存在するのぜ？
     if let Some(path) = args.get(1).clone() {
+        // ファイルが開けるのぜ？
         if let Ok(source) = read_to_string(path) {
             noze(source, debug)
         } else {
@@ -35,6 +39,7 @@ fn main() {
     };
 }
 
+/// 対話環境なのぜ
 fn repl(debug: bool) {
     println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
     loop {
@@ -51,6 +56,7 @@ fn repl(debug: bool) {
     }
 }
 
+/// ユーザ入力するのぜ
 fn input(prompt: &str) -> String {
     print!("{}", prompt);
     io::stdout().flush().unwrap();
@@ -59,7 +65,7 @@ fn input(prompt: &str) -> String {
     result.trim().to_string()
 }
 
-/// 全角数字をusize型
+/// 全角数字をf64型に変換するのぜ
 fn fullwidth_to_usize(text: &str) -> Option<f64> {
     let re = Regex::new(r"^[０１２３４５６７８９.]+$").unwrap();
     if !re.is_match(text) {
@@ -81,6 +87,7 @@ fn fullwidth_to_usize(text: &str) -> Option<f64> {
     Some(text.parse().unwrap_or_default())
 }
 
+/// 複数のキーで文字列を分割するのぜ
 fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
     let mut result = Vec::new();
     let mut buffer = String::new();
@@ -107,6 +114,7 @@ fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
     result
 }
 
+/// データ型なのぜ
 #[derive(Clone, Debug)]
 enum Type {
     Number(f64),
@@ -117,8 +125,11 @@ enum Type {
 }
 
 impl Type {
+    /// 文字列を値に変換するのぜ
     fn parse(s: String, memory: &mut HashMap<String, Type>) -> Type {
         let mut s = s.trim().to_string();
+
+        // 変数の読み込みの方が優先されるのぜ
         if let Some(value) = memory.get(&s) {
             value.clone()
         } else if let Ok(i) = s.parse::<f64>() {
@@ -131,41 +142,33 @@ impl Type {
             Type::Bool(false)
         } else if s == "無し" {
             Type::None
+
+        // 文字列リテラルは、鉤括弧で囲むのぜ
         } else if s.starts_with("「") && s.starts_with("「") {
             Type::String({
                 s.remove(s.find("「").unwrap_or_default());
                 s.remove(s.rfind("」").unwrap_or_default());
                 s.to_string()
             })
+
+        // 配列のリテラルは丸括弧で囲むのぜ
         } else if s.starts_with("（") && s.starts_with("）") {
             Type::Array({
                 s.remove(s.find("（").unwrap_or_default());
                 s.remove(s.rfind("）").unwrap_or_default());
+                // 要素はカンマ`で区切るのぜ
                 split_multiple(s, vec!['、', ','])
                     .into_iter()
                     .map(|i| Type::parse(i.to_string(), memory))
                     .collect()
             })
         } else {
+            // 処理できなかった値は最終的に文字列として処理されるのぜ
             Type::String(s.to_string())
         }
     }
 
-    fn get_string(&self) -> String {
-        match self {
-            Type::Number(i) => i.to_string(),
-            Type::String(s) => s.to_string(),
-            Type::Bool(b) => if *b { "真" } else { "偽" }.to_string(),
-            Type::Array(a) => format!(
-                "（ {} ）",
-                a.iter()
-                    .map(|i| i.get_string())
-                    .collect::<Vec<String>>()
-                    .join("、")
-            ),
-            Type::None => "無し".to_string(),
-        }
-    }
+    /// 数値を取得するのぜ
     fn get_number(&self) -> f64 {
         match self {
             Type::Number(i) => *i,
@@ -181,6 +184,25 @@ impl Type {
             Type::None => 0.0,
         }
     }
+
+    /// 文字列を取得するのぜ
+    fn get_string(&self) -> String {
+        match self {
+            Type::Number(i) => i.to_string(),
+            Type::String(s) => s.to_string(),
+            Type::Bool(b) => if *b { "真" } else { "偽" }.to_string(),
+            Type::Array(a) => format!(
+                "（ {} ）",
+                a.iter()
+                    .map(|i| i.get_string())
+                    .collect::<Vec<String>>()
+                    .join("、")
+            ),
+            Type::None => "無し".to_string(),
+        }
+    }
+
+    /// 論理を取得するのぜ
     fn get_bool(&self) -> bool {
         match self {
             Type::Number(i) => *i != 0.0,
@@ -191,6 +213,7 @@ impl Type {
         }
     }
 
+    /// 配列を取得するのぜ
     fn get_array(&self) -> Vec<Type> {
         match self {
             Type::Number(i) => vec![Type::Number(*i)],
@@ -206,23 +229,24 @@ impl Type {
     }
 }
 
+/// プログラムを実行するのぜ
 fn noze(source: String, debug: bool) {
     let memory: &mut HashMap<String, Type> = &mut HashMap::new();
     let lines = split_multiple(source, ['。'].to_vec());
     let mut pc: usize = 0;
 
-    // プリプロセッサ
+    // プリプロセッサなのぜ
     while pc < lines.len() {
         let code = lines[pc].trim();
         if code.is_empty() {
             continue;
         }
 
-        // 空白業を
         if code.ends_with("のぜ") {
             let code = code.replace("のぜ", "");
             if code.ends_with("な") {
                 if !code.contains("は") {
+                    // ラベル変数に現在のプログラムカウンタの値を代入するのぜ
                     memory.insert(
                         code.replace("な", "").trim().to_string(),
                         Type::Number(pc as f64),
@@ -245,6 +269,8 @@ fn noze(source: String, debug: bool) {
         if code.is_empty() {
             continue;
         }
+
+        // デバック表示なのぜ
         if debug {
             eprintln!(
                 "
@@ -274,6 +300,8 @@ fn noze(source: String, debug: bool) {
             let code = code.replace("のぜ", "");
             if code.ends_with("する") {
                 let code = code.replace("する", "");
+
+                // この文は定義するのぜ？
                 let (name, code) = if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
                     (
@@ -283,6 +311,8 @@ fn noze(source: String, debug: bool) {
                 } else {
                     (None, code.to_string())
                 };
+
+                // 命令名と引数を区切るのぜ
                 let code: Vec<&str> = code.split("を").collect();
                 let result: Type = if code.len() > 1 {
                     let (order, args): (String, Vec<Type>) = (
@@ -456,10 +486,13 @@ fn noze(source: String, debug: bool) {
                         }
                     }
                 };
+
+                // 結果を変数に代入するのぜ
                 if let Some(name) = name {
                     memory.insert(name, result);
                 }
             } else if code.ends_with("な") {
+                // リテラルで定義するのぜ
                 if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
                     let value = Type::parse(code[1].replace("な", "").trim().to_string(), memory);
@@ -469,6 +502,8 @@ fn noze(source: String, debug: bool) {
         } else {
             eprintln!("エラー！文の終端には「のぜ」を付ける必要があるのぜ");
         }
+
+        // プログラムカウンタを加算するのぜ
         pc += 1;
     }
 }
