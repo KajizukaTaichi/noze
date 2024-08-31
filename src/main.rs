@@ -126,61 +126,61 @@ enum Type {
 
 impl Type {
     /// 文字列を値に変換するのぜ
-    fn parse(s: String, memory: &mut HashMap<String, Type>) -> Type {
-        let mut s = s.trim().to_string();
+    fn parse(source: String, memory: &mut HashMap<String, Type>) -> Type {
+        let mut source = source.trim().to_string();
 
         // 変数の読み込みの方が優先されるのぜ
-        if let Some(value) = memory.get(&s) {
+        if let Some(value) = memory.get(&source) {
             value.clone()
-        } else if let Ok(i) = s.parse::<f64>() {
-            Type::Number(i)
-        } else if let Some(i) = fullwidth_to_usize(&s) {
-            Type::Number(i as f64)
-        } else if s == "真" {
+        } else if let Ok(value) = source.parse::<f64>() {
+            Type::Number(value)
+        } else if let Some(value) = fullwidth_to_usize(&source) {
+            Type::Number(value)
+        } else if source == "真" {
             Type::Bool(true)
-        } else if s == "偽" {
+        } else if source == "偽" {
             Type::Bool(false)
-        } else if s == "無し" {
+        } else if source == "無し" {
             Type::None
 
-        // 文字列リテラルは、鉤括弧で囲むのぜ
-        } else if s.starts_with("「") && s.starts_with("「") {
+        // 文字列リテラルは鉤括弧で囲むのぜ
+        } else if source.starts_with("「") && source.starts_with("「") {
             Type::String({
-                s.remove(s.find("「").unwrap_or_default());
-                s.remove(s.rfind("」").unwrap_or_default());
-                s.to_string()
+                source.remove(source.find("「").unwrap_or_default());
+                source.remove(source.rfind("」").unwrap_or_default());
+                source.to_string()
             })
 
-        // 配列のリテラルは丸括弧で囲むのぜ
-        } else if s.starts_with("（") && s.starts_with("）") {
+        // 配列リテラルは丸括弧で囲むのぜ
+        } else if source.starts_with("（") && source.starts_with("）") {
             Type::Array({
-                s.remove(s.find("（").unwrap_or_default());
-                s.remove(s.rfind("）").unwrap_or_default());
+                source.remove(source.find("（").unwrap_or_default());
+                source.remove(source.rfind("）").unwrap_or_default());
                 // 要素はカンマ`で区切るのぜ
-                split_multiple(s, vec!['、', ','])
+                split_multiple(source, vec!['、', ','])
                     .into_iter()
-                    .map(|i| Type::parse(i.to_string(), memory))
+                    .map(|item| Type::parse(item.to_string(), memory))
                     .collect()
             })
         } else {
             // 処理できなかった値は最終的に文字列として処理されるのぜ
-            Type::String(s.to_string())
+            Type::String(source.to_string())
         }
     }
 
     /// 数値を取得するのぜ
     fn get_number(&self) -> f64 {
         match self {
-            Type::Number(i) => *i,
-            Type::String(s) => s.parse().unwrap_or_default(),
-            Type::Bool(b) => {
-                if *b {
+            Type::Number(value) => *value,
+            Type::String(value) => value.parse().unwrap_or_default(),
+            Type::Bool(value) => {
+                if *value {
                     1.0
                 } else {
                     0.0
                 }
             }
-            Type::Array(a) => a.get(0).unwrap_or(&Type::None).get_number(),
+            Type::Array(value) => value.get(0).unwrap_or(&Type::None).get_number(),
             Type::None => 0.0,
         }
     }
@@ -188,12 +188,13 @@ impl Type {
     /// 文字列を取得するのぜ
     fn get_string(&self) -> String {
         match self {
-            Type::Number(i) => i.to_string(),
-            Type::String(s) => s.to_string(),
-            Type::Bool(b) => if *b { "真" } else { "偽" }.to_string(),
-            Type::Array(a) => format!(
+            Type::Number(value) => value.to_string(),
+            Type::String(value) => value.to_string(),
+            Type::Bool(value) => if *value { "真" } else { "偽" }.to_string(),
+            Type::Array(value) => format!(
                 "（ {} ）",
-                a.iter()
+                value
+                    .iter()
                     .map(|i| i.get_string())
                     .collect::<Vec<String>>()
                     .join("、")
@@ -205,10 +206,10 @@ impl Type {
     /// 論理を取得するのぜ
     fn get_bool(&self) -> bool {
         match self {
-            Type::Number(i) => *i != 0.0,
-            Type::String(s) => s == "真",
-            Type::Bool(b) => *b,
-            Type::Array(a) => !a.is_empty(),
+            Type::Number(value) => *value != 0.0,
+            Type::String(value) => value == "真",
+            Type::Bool(value) => *value,
+            Type::Array(value) => !value.is_empty(),
             Type::None => false,
         }
     }
@@ -216,14 +217,14 @@ impl Type {
     /// 配列を取得するのぜ
     fn get_array(&self) -> Vec<Type> {
         match self {
-            Type::Number(i) => vec![Type::Number(*i)],
-            Type::String(s) => s
+            Type::Number(value) => vec![Type::Number(*value)],
+            Type::String(value) => value
                 .chars()
                 .into_iter()
-                .map(|i| Type::String(i.to_string()))
+                .map(|c| Type::String(c.to_string()))
                 .collect(),
-            Type::Bool(b) => vec![Type::Bool(*b)],
-            Type::Array(a) => a.clone(),
+            Type::Bool(value) => vec![Type::Bool(*value)],
+            Type::Array(value) => value.clone(),
             Type::None => vec![],
         }
     }
