@@ -8,7 +8,7 @@
 
 |サンプルコード実行|
 |:-|
-|<img width="993" alt="image" src="https://github.com/user-attachments/assets/2ad70160-17c7-42b7-85ea-b390bce50d3b">|
+|<img width="993" alt="image" src="https://github.com/user-attachments/assets/b4b68ef5-8a32-4cb1-b01a-e93c761c6d26">|
 
 ## インストール
 
