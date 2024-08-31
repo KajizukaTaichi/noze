@@ -23,35 +23,15 @@ fn main() {
     } else {
         args
     };
-    let (source, wordend): (String, String) = if args.len() > 2 {
-        (
-            if let Ok(file) = read_to_string(args[1].clone()) {
-                file
-            } else {
-                repl(args[2].to_string(), debug);
-                return;
-            },
-            args[2].to_string(),
-        )
-    } else if args.len() > 1 {
-        (
-            if let Ok(file) = read_to_string(args[1].clone()) {
-                file
-            } else {
-                repl("のぜ".to_string(), debug);
-                return;
-            },
-            "のぜ".to_string(),
-        )
-    } else {
-        repl("のぜ".to_string(), debug);
-        return;
-    };
 
-    noze(source, wordend.clone(), debug)
+    if let Ok(source) = read_to_string(args[1].clone()) {
+        noze(source, debug)
+    } else {
+        repl(debug);
+    };
 }
 
-fn repl(wordend: String, debug: bool) {
+fn repl(debug: bool) {
     println!("Noze：日本語プログラミング言語なのぜ！！！ \n(c) 2024 梶塚太智. All rights reserved");
     loop {
         let mut code = String::new();
@@ -63,7 +43,7 @@ fn repl(wordend: String, debug: bool) {
             }
         }
 
-        noze(code, wordend.clone(), debug);
+        noze(code, debug);
     }
 }
 
@@ -75,37 +55,26 @@ fn input(prompt: &str) -> String {
     result.trim().to_string()
 }
 
-fn convert_to_usize(text: &str) -> Option<usize> {
-    let re = Regex::new(r"^[０１２３４５６７８９]+$").unwrap();
+/// 全角数字をusize型
+fn fullwidth_to_usize(text: &str) -> Option<f64> {
+    let re = Regex::new(r"^[０１２３４５６７８９.]+$").unwrap();
     if !re.is_match(text) {
         return None;
     }
 
-    let map: HashMap<char, usize> = vec![
-        ('０', 0),
-        ('１', 1),
-        ('２', 2),
-        ('３', 3),
-        ('４', 4),
-        ('５', 5),
-        ('６', 6),
-        ('７', 7),
-        ('８', 8),
-        ('９', 9),
-    ]
-    .into_iter()
-    .collect();
+    let text = text
+        .replace("０", "0")
+        .replace("１", "1")
+        .replace("２", "2")
+        .replace("３", "3")
+        .replace("４", "4")
+        .replace("５", "5")
+        .replace("６", "6")
+        .replace("７", "7")
+        .replace("８", "8")
+        .replace("９", "9");
 
-    let mut result = String::new();
-    for c in text.chars() {
-        if let Some(&value) = map.get(&c) {
-            result += &value.to_string()
-        } else {
-            return None;
-        }
-    }
-
-    Some(result.parse().unwrap_or_default())
+    Some(text.parse().unwrap_or_default())
 }
 
 fn split_multiple(text: String, key: Vec<char>) -> Vec<String> {
@@ -150,7 +119,7 @@ impl Type {
             value.clone()
         } else if let Ok(i) = s.parse::<f64>() {
             Type::Number(i)
-        } else if let Some(i) = convert_to_usize(&s) {
+        } else if let Some(i) = fullwidth_to_usize(&s) {
             Type::Number(i as f64)
         } else if s == "真" {
             Type::Bool(true)
@@ -233,29 +202,31 @@ impl Type {
     }
 }
 
-fn noze(source: String, wordend: String, debug: bool) {
+fn noze(source: String, debug: bool) {
     let memory: &mut HashMap<String, Type> = &mut HashMap::new();
-    let lines = split_multiple(source, ['。', '.'].to_vec());
+    let lines = split_multiple(source, ['。'].to_vec());
     let mut pc: usize = 0;
 
-    // Preprocessing
+    // プリプロセッサ
     while pc < lines.len() {
         let code = lines[pc].trim();
         if code.is_empty() {
             continue;
         }
-        if code.ends_with(&wordend) {
-            let code = code.replace(&wordend, "");
-            if code.ends_with("である") {
+
+        // 空白業を
+        if code.ends_with("のぜ") {
+            let code = code.replace("のぜ", "");
+            if code.ends_with("な") {
                 if !code.contains("は") {
                     memory.insert(
-                        code.replace("である", "").trim().to_string(),
+                        code.replace("な", "").trim().to_string(),
                         Type::Number(pc as f64),
                     );
                 }
             }
         } else {
-            panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
+            panic!("文の終端には「のぜ」を付ける必要があるのぜ");
         }
         pc += 1;
     }
@@ -294,8 +265,8 @@ fn noze(source: String, wordend: String, debug: bool) {
             input("Enterキーを押してデバック実行継続");
         }
 
-        if code.ends_with(&wordend) {
-            let code = code.replace(&wordend, "");
+        if code.ends_with("のぜ") {
+            let code = code.replace("のぜ", "");
             if code.ends_with("する") {
                 let code = code.replace("する", "");
                 let (name, code) = if code.contains("は") {
@@ -322,8 +293,7 @@ fn noze(source: String, wordend: String, debug: bool) {
                     match order.as_str() {
                         "足し算" => {
                             let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                            let mut result: f64 =
-                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            let mut result: f64 = args[0];
                             for i in args[1..args.len()].to_vec().iter() {
                                 result += i;
                             }
@@ -331,8 +301,7 @@ fn noze(source: String, wordend: String, debug: bool) {
                         }
                         "引き算" => {
                             let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                            let mut result: f64 =
-                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            let mut result: f64 = args[0];
                             for i in args[1..args.len()].to_vec().iter() {
                                 result -= i;
                             }
@@ -340,8 +309,7 @@ fn noze(source: String, wordend: String, debug: bool) {
                         }
                         "掛け算" => {
                             let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                            let mut result: f64 =
-                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            let mut result: f64 = args[0];
                             for i in args[1..args.len()].to_vec().iter() {
                                 result *= i;
                             }
@@ -349,8 +317,7 @@ fn noze(source: String, wordend: String, debug: bool) {
                         }
                         "割り算" => {
                             let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                            let mut result: f64 =
-                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            let mut result: f64 = args[0];
                             for i in args[1..args.len()].to_vec().iter() {
                                 result /= i;
                             }
@@ -358,8 +325,7 @@ fn noze(source: String, wordend: String, debug: bool) {
                         }
                         "余剰" => {
                             let args: Vec<f64> = args.iter().map(|i| i.get_number()).collect();
-                            let mut result: f64 =
-                                *args.get(0).expect(&format!("引数が必要{}", wordend));
+                            let mut result: f64 = args[0];
                             for i in args[1..args.len()].to_vec().iter() {
                                 result %= i;
                             }
@@ -448,15 +414,13 @@ fn noze(source: String, wordend: String, debug: bool) {
                             Type::None
                         }
                         "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
-                        other => panic!("定義されてない命令{}：{}", wordend, other),
+                        other => panic!("定義されてない命令{}：{}", "のぜ", other),
                     }
                 } else {
                     match code[0] {
                         "終了" => exit(0),
                         "帰還" => {
-                            pc = call_stack
-                                .pop()
-                                .expect(&format!("呼び出しスタックが空{}", wordend));
+                            pc = call_stack.pop().expect("呼び出しスタックが空なのぜ");
                             Type::None
                         }
                         "アイテム一覧の取得" => Type::Array(
@@ -473,22 +437,21 @@ fn noze(source: String, wordend: String, debug: bool) {
                         "現在ディレクトリの取得" => {
                             Type::String(env::current_dir().unwrap().to_str().unwrap().to_string())
                         }
-                        other => panic!("定義されてない命令{}：{}", wordend, other),
+                        other => panic!("定義されてない命令なのぜ：{}", other),
                     }
                 };
                 if let Some(name) = name {
                     memory.insert(name, result);
                 }
-            } else if code.ends_with("である") {
+            } else if code.ends_with("な") {
                 if code.contains("は") {
                     let code: Vec<&str> = code.split("は").collect();
-                    let value =
-                        Type::parse(code[1].replace("である", "").trim().to_string(), memory);
+                    let value = Type::parse(code[1].replace("な", "").trim().to_string(), memory);
                     memory.insert(code[0].to_string(), value);
                 }
             }
         } else {
-            panic!("文の終端には「{}」を付ける必要がある{}", wordend, wordend);
+            panic!("文の終端には「のぜ」を付ける必要があるのぜ");
         }
         pc += 1;
     }
