@@ -24,8 +24,12 @@ fn main() {
         args
     };
 
-    if let Ok(source) = read_to_string(args[1].clone()) {
-        noze(source, debug)
+    if let Some(path) = args.get(1).clone() {
+        if let Ok(source) = read_to_string(path) {
+            noze(source, debug)
+        } else {
+            eprintln!("エラー！ファイルが開けません")
+        }
     } else {
         repl(debug);
     };
@@ -226,7 +230,8 @@ fn noze(source: String, debug: bool) {
                 }
             }
         } else {
-            panic!("文の終端には「のぜ」を付ける必要があるのぜ");
+            eprintln!("文の終端には「のぜ」を付ける必要があるのぜ");
+            return;
         }
         pc += 1;
     }
@@ -414,13 +419,21 @@ fn noze(source: String, debug: bool) {
                             Type::None
                         }
                         "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
-                        other => panic!("定義されてない命令{}：{}", "のぜ", other),
+                        other => {
+                            eprintln!("エラー！定義されてない命令{}：{}", "のぜ", other);
+                            return;
+                        }
                     }
                 } else {
                     match code[0] {
                         "終了" => exit(0),
                         "帰還" => {
-                            pc = call_stack.pop().expect("呼び出しスタックが空なのぜ");
+                            pc = if let Some(i) = call_stack.pop() {
+                                i
+                            } else {
+                                eprintln!("呼び出しスタックが空なのぜ");
+                                return;
+                            };
                             Type::None
                         }
                         "アイテム一覧の取得" => Type::Array(
@@ -437,7 +450,10 @@ fn noze(source: String, debug: bool) {
                         "現在ディレクトリの取得" => {
                             Type::String(env::current_dir().unwrap().to_str().unwrap().to_string())
                         }
-                        other => panic!("定義されてない命令なのぜ：{}", other),
+                        other => {
+                            eprintln!("エラー！定義されてない命令なのぜ：{}", other);
+                            return;
+                        }
                     }
                 };
                 if let Some(name) = name {
@@ -451,7 +467,7 @@ fn noze(source: String, debug: bool) {
                 }
             }
         } else {
-            panic!("文の終端には「のぜ」を付ける必要があるのぜ");
+            eprintln!("エラー！文の終端には「のぜ」を付ける必要があるのぜ");
         }
         pc += 1;
     }
