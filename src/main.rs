@@ -254,7 +254,7 @@ fn noze(source: String, debug: bool) {
                 }
             }
         } else {
-            eprintln!("文の終端には「のぜ」を付ける必要があるのぜ");
+            eprintln!("エラー！文の終端には「のぜ」を付ける必要があるのぜ");
             return;
         }
         pc += 1;
@@ -450,7 +450,7 @@ fn noze(source: String, debug: bool) {
                         }
                         "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
                         other => {
-                            eprintln!("エラー！定義されてない命令{}：{}", "のぜ", other);
+                            eprintln!("エラー！定義されてない命令なのぜ：{}", other);
                             return;
                         }
                     }
@@ -461,7 +461,7 @@ fn noze(source: String, debug: bool) {
                             pc = if let Some(i) = call_stack.pop() {
                                 i
                             } else {
-                                eprintln!("呼び出しスタックが空なのぜ");
+                                eprintln!("エラー！呼び出しスタックが空なのぜ");
                                 return;
                             };
                             Type::None
