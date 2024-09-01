@@ -305,16 +305,15 @@ fn noze(source: String, debug: bool) {
         }
 
         let code = code.replace("のぜ", "");
+
+        // 命令文なのぜ
         if code.ends_with("する") {
             let code = code.replace("する", "");
 
-            // この文は定義するのぜ？
+            // この文は結果を変数に代入するのぜ？
             let (name, code) = if code.contains("は") {
                 let code: Vec<&str> = code.split("は").collect();
-                (
-                    Some(code[0..code.len() - 1].join("は")),
-                    code[code.len() - 1].to_string(),
-                )
+                (Some(code[0]), code[1..code.len()].join("は").to_string())
             } else {
                 (None, code.to_string())
             };
@@ -328,9 +327,9 @@ fn noze(source: String, debug: bool) {
                     code[code.len() - 1].to_string(),
                     code[0..code.len() - 1]
                         .join("を")
-                        .split("と")
+                        .split("と") // 引数の区切るのぜ
                         .into_iter()
-                        .map(|s| Type::parse(s.to_string(), memory))
+                        .map(|s| Type::parse(s.to_string(), memory)) // 引数を評価するのぜ
                         .collect(),
                 );
 
@@ -524,10 +523,12 @@ fn noze(source: String, debug: bool) {
 
             // 結果を変数に代入するのぜ
             if let Some(name) = name {
-                memory.insert(name, result);
+                memory.insert(name.to_string(), result);
             }
+
+        // 代入分なのぜ
         } else if code.ends_with("な") {
-            // リテラルで定義するのぜ
+            // 変数をリテラルで定義するのぜ
             if code.contains("は") {
                 let code: Vec<&str> = code.split("は").collect();
                 let value = Type::parse(code[1].replace("な", "").trim().to_string(), memory);
