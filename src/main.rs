@@ -458,7 +458,7 @@ fn noze(source: String, debug: bool) {
                         Type::None
                     }
                     "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
-                    "淫らに取得" => args[0]
+                    "ランダムに取得" => args[0]
                         .get_array()
                         .choose(&mut thread_rng())
                         .unwrap_or(&Type::None)
