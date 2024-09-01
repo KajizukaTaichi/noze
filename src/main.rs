@@ -1,3 +1,5 @@
+use rand::seq::SliceRandom;
+use rand::thread_rng;
 use regex::Regex;
 use std::{
     collections::HashMap,
@@ -454,6 +456,27 @@ fn noze(source: String, debug: bool) {
                         Type::None
                     }
                     "入力待ち" => Type::String(input(&format!("{}", args[0].get_string()))),
+                    "淫らに取得" => args[0]
+                        .get_array()
+                        .choose(&mut thread_rng())
+                        .unwrap_or(&Type::None)
+                        .to_owned(),
+                    "範囲に" => {
+                        let mut result: Vec<Type> = vec![];
+
+                        let start = args[0].get_number();
+                        let end = args[1].get_number();
+                        let step = args[2].get_number();
+
+                        let mut current = start;
+
+                        while current < end {
+                            result.push(Type::Number(current));
+                            current += step;
+                        }
+
+                        Type::Array(result)
+                    }
                     other => {
                         eprintln!("エラー！定義されてない命令なのぜ：{}", other);
                         return;
