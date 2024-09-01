@@ -269,6 +269,7 @@ fn noze(source: String, debug: bool) {
     let mut pc: usize = 0;
     let mut output = String::new();
 
+    // メイン実行なのぜ
     while pc < lines.len() {
         let code = lines[pc].trim();
         pc += 1;
