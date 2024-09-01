@@ -485,6 +485,9 @@ fn noze(source: String, debug: bool) {
                     "現在ディレクトリの取得" => {
                         Type::String(env::current_dir().unwrap().to_str().unwrap().to_string())
                     }
+                    "環境変数を取得" => {
+                        Type::Array(args().into_iter().map(|i| Type::parse(i, memory)).collect())
+                    }
                     other => {
                         eprintln!("エラー！定義されてない命令なのぜ：{}", other);
                         return;
