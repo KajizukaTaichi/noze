@@ -321,6 +321,8 @@ fn noze(source: String, debug: bool) {
 
             // 命令名と引数を区切るのぜ
             let code: Vec<&str> = code.split("を").collect();
+
+            // 引数がある命令なのぜ
             let result: Type = if code.len() > 1 {
                 let (order, args): (String, Vec<Type>) = (
                     code[code.len() - 1].to_string(),
@@ -482,6 +484,8 @@ fn noze(source: String, debug: bool) {
                         return;
                     }
                 }
+
+            // 引数無しの命令なのぜ
             } else {
                 match code[0] {
                     "終了" => exit(0),
